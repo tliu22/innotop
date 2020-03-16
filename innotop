@@ -9444,7 +9444,7 @@ sub choose_thread {
    } keys %connections;
 
    my @candidates = grep {
-      $_->{id} != $thread_for{$_->{cxn}} && $grep_cond->($_)
+      $_->{id} ne '' && $_->{id} != $thread_for{$_->{cxn}} && $grep_cond->($_)
    } @current_queries;
    return unless @candidates;
 
