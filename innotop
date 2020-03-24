@@ -1509,7 +1509,7 @@ my @opt_spec = (
    { s => 'port|P=i',   d => 'Port number to use for connection' },
    { s => 'socket|S=s', d => 'MySQL socket to use for connection' },
    { s => 'timestamp|t+', d => 'Print timestamp in -n mode (1: per iter; 2: per line)' },
-   { s => 'psthreads',  d => 'Use performance_schema.threads over information_schema.processlist' },
+   { s => 'processlist',  d => 'Use information_schema.processlist instead of performance_schema.threads' },
 );
 
 # This is the container for the command-line options' values to be stored in
@@ -4546,7 +4546,7 @@ my %stmt_maker_for = (
       eval { # This can fail if the table doesn't exist, INFORMATION_SCHEMA doesn't exist, etc.
          my $cols = $dbh->selectall_arrayref(q{SHOW /*innotop*/ COLUMNS FROM INFORMATION_SCHEMA.INNODB_LOCK_WAITS});
          if ( @$cols ) {
-            if ( $opts{'psthreads'} ) {
+            if ( !$opts{'processlist'} ) {
                eval {  # This can fail if PERFORMANCE_SCHEMA isn't enabled or performance_schema.threads doesn't exist
                   my $ps_on = $dbh->selectall_arrayref(q{SHOW /*innotop*/ VARIABLES WHERE variable_name='PERFORMANCE_SCHEMA' AND value='ON'});
                   if ( @$ps_on ) {  # PERFORMANCE_SCHEMA is ON / enabled
@@ -4707,7 +4707,7 @@ my %stmt_maker_for = (
       # In newer versions of the server, use INFORMATION_SCHEMA table if it exists,
       # and use the TIME_MS column (in Percona Server) if that exists.
       my $sth;
-      if ( $opts{'psthreads'} ) {
+      if ( !$opts{'processlist'} ) {
          eval {  # This can fail if PERFORMANCE_SCHEMA isn't enabled or performance_schema.threads doesn't exist
             my $ps_on = $dbh->selectall_arrayref(q{SHOW /*innotop*/ VARIABLES WHERE variable_name='PERFORMANCE_SCHEMA' AND value='ON'});
             if ( @$ps_on ) {  # PERFORMANCE_SCHEMA is ON / enabled
@@ -4731,7 +4731,7 @@ my %stmt_maker_for = (
       # We do not use INFORMATION_SCHEMA table because it doesn't show slave
       # SQL statements. http://bugs.mysql.com/66401
       my $sth;
-      if ( $opts{'psthreads'} ) {
+      if ( !$opts{'processlist'} ) {
          eval {  # This can fail if PERFORMANCE_SCHEMA isn't enabled or performance_schema.threads doesn't exist
             my $ps_on = $dbh->selectall_arrayref(q{SHOW /*innotop*/ VARIABLES WHERE variable_name='PERFORMANCE_SCHEMA' AND value='ON'});
             if ( @$ps_on ) {  # PERFORMANCE_SCHEMA is ON / enabled
@@ -4789,7 +4789,7 @@ sub main {
       map  { $_->{c} => $opts{$_->{k}} }
       grep { exists $_->{c} && exists $opts{$_->{k}} }
       @opt_spec;
-   
+
    foreach my $name (keys %cmdline) {
       next if not defined $cmdline{$name};
       my $val = $cmdline{$name};
