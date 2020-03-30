@@ -22,7 +22,7 @@
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '1.12.0snc';
+our $VERSION = '1.12.0snc1';
 
 # Find the home directory; it's different on different OSes.
 our $homepath = $ENV{HOME} || $ENV{HOMEPATH} || $ENV{USERPROFILE} || '.';
@@ -4711,7 +4711,21 @@ my %stmt_maker_for = (
          eval {  # This can fail if PERFORMANCE_SCHEMA isn't enabled or performance_schema.threads doesn't exist
             my $ps_on = $dbh->selectall_arrayref(q{SHOW /*innotop*/ VARIABLES WHERE variable_name='PERFORMANCE_SCHEMA' AND value='ON'});
             if ( @$ps_on ) {  # PERFORMANCE_SCHEMA is ON / enabled
-               $sth = $dbh->prepare(q{SELECT /*innotop*/ PROCESSLIST_ID Id, if(TYPE='FOREGROUND', PROCESSLIST_USER, 'system user') User, PROCESSLIST_HOST Host, PROCESSLIST_DB db, PROCESSLIST_COMMAND Command, PROCESSLIST_TIME Time, PROCESSLIST_STATE State, PROCESSLIST_INFO Info FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
+               $sth = $dbh->prepare(q{
+                  SELECT /*innotop*/ PROCESSLIST_ID Id,
+                     if(TYPE='FOREGROUND', PROCESSLIST_USER, 'system user') User,
+                     PROCESSLIST_HOST Host,
+                     PROCESSLIST_DB db,
+                     CASE
+                        WHEN NAME='thread/sql/slave_io' THEN 'Slave_IO'
+                        WHEN NAME='thread/sql/slave_sql' THEN 'Slave_SQL'
+                        WHEN NAME='thread/sql/rpl_parallel_thread' THEN 'Slave_worker'
+                        ELSE PROCESSLIST_COMMAND
+                     END Command,
+                     PROCESSLIST_TIME Time,
+                     PROCESSLIST_STATE State,
+                     PROCESSLIST_INFO Info
+                  FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
             }
          };
          die 'performance_schema.threads unavailable' unless defined $sth;
@@ -4735,7 +4749,21 @@ my %stmt_maker_for = (
          eval {  # This can fail if PERFORMANCE_SCHEMA isn't enabled or performance_schema.threads doesn't exist
             my $ps_on = $dbh->selectall_arrayref(q{SHOW /*innotop*/ VARIABLES WHERE variable_name='PERFORMANCE_SCHEMA' AND value='ON'});
             if ( @$ps_on ) {  # PERFORMANCE_SCHEMA is ON / enabled
-               $sth = $dbh->prepare(q{SELECT /*innotop*/ PROCESSLIST_ID Id, if(TYPE='FOREGROUND', PROCESSLIST_USER, 'system user') User, PROCESSLIST_HOST Host, PROCESSLIST_DB db, PROCESSLIST_COMMAND Command, PROCESSLIST_TIME Time, PROCESSLIST_STATE State, PROCESSLIST_INFO Info FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
+               $sth = $dbh->prepare(q{
+                  SELECT /*innotop*/ PROCESSLIST_ID Id,
+                     if(TYPE='FOREGROUND', PROCESSLIST_USER, 'system user') User,
+                     PROCESSLIST_HOST Host,
+                     PROCESSLIST_DB db,
+                     CASE
+                        WHEN NAME='thread/sql/slave_io' THEN 'Slave_IO'
+                        WHEN NAME='thread/sql/slave_sql' THEN 'Slave_SQL'
+                        WHEN NAME='thread/sql/rpl_parallel_thread' THEN 'Slave_worker'
+                        ELSE PROCESSLIST_COMMAND
+                     END Command,
+                     PROCESSLIST_TIME Time,
+                     PROCESSLIST_STATE State,
+                     PROCESSLIST_INFO Info
+                  FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
             }
          };
          die 'performance_schema.threads unavailable' unless defined $sth;
