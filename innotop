@@ -4724,8 +4724,10 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     PROCESSLIST_INFO Info
-                  FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
+                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info
+                  FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
+                     ON threads.THREAD_ID = events_statements_current.THREAD_ID
+                  WHERE PROCESSLIST_USER IS NOT NULL});
             }
          };
          die 'performance_schema.threads unavailable' unless defined $sth;
@@ -4762,8 +4764,10 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     PROCESSLIST_INFO Info
-                  FROM performance_schema.threads WHERE PROCESSLIST_USER IS NOT NULL});
+                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info
+                  FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
+                     ON threads.THREAD_ID = events_statements_current.THREAD_ID
+                  WHERE PROCESSLIST_USER IS NOT NULL});
             }
          };
          die 'performance_schema.threads unavailable' unless defined $sth;
