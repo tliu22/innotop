@@ -4734,7 +4734,7 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
+                     if(PROCESSLIST_INFO IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
                      NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
                      ON threads.THREAD_ID = events_statements_current.THREAD_ID});
@@ -4774,7 +4774,7 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
+                     if(PROCESSLIST_INFO IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
                      NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
                      ON threads.THREAD_ID = events_statements_current.THREAD_ID});
