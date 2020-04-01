@@ -1847,6 +1847,7 @@ my %columns = (
    tbl                         => { hdr => 'Table',               num => 0, label => 'Table', },
    thread                      => { hdr => 'Thread',              num => 1, label => 'Thread number' },
    thread_decl_inside          => { hdr => 'Thread Inside',       num => 0, label => 'What the thread is declared inside' },
+   thread_name                 => { hdr => 'Thread Name',         num => 0, label => 'Thread name' },
    thread_purpose              => { hdr => 'Purpose',             num => 0, label => "The thread's purpose" },
    thread_status               => { hdr => 'Thread Status',       num => 0, label => 'The thread status' },
    time                        => { hdr => 'Time',                num => 1, label => 'Time since the last event', },
@@ -1953,6 +1954,13 @@ my %builtin_filters = (
          return (($set->{state} || '') !~ m/^Daemon/) || (($set->{info} || '') !~ m/\S/);
       END
       note => 'Removes idle event threads from the list',
+      tbls => [qw(processlist)],
+   },
+   hide_compress_gtid => {
+      text => <<'      END',
+         return (!defined($set->{thread_name}) || $set->{thread_name} !~ m/^thread\/sql\/compress_gtid_table/);
+      END
+      note => 'Removes compress_gtid_table threads from the list',
       tbls => [qw(processlist)],
    },
    table_is_open => {
@@ -2777,9 +2785,10 @@ my %tbl_meta = (
          state           => { src => 'state',      minw => 0,  maxw => 0 },
          info            => { src => 'info',       minw => 0,  maxw => 0, trans => [ qw(no_ctrl_char) ] },
          cnt             => { src => 'id',         minw => 0,  maxw => 0 },
+         thread_name     => { src => 'name',       minw => 0,  maxw => 0 },
       },
       visible => [ qw(cxn cmd cnt mysql_thread_id state user hostname db time info)],
-      filters => [ qw(hide_self hide_inactive hide_slave_io hide_event hide_connect) ],
+      filters => [ qw(hide_self hide_inactive hide_slave_io hide_event hide_connect hide_compress_gtid) ],
       sort_cols => '-time cxn hostname mysql_thread_id',
       sort_dir => '1',
       innodb   => '',
@@ -4725,7 +4734,8 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info
+                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
+                     NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
                      ON threads.THREAD_ID = events_statements_current.THREAD_ID});
             }
@@ -4764,7 +4774,8 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
-                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info
+                     if(SQL_TEXT IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
+                     NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
                      ON threads.THREAD_ID = events_statements_current.THREAD_ID});
             }
