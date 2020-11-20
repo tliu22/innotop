@@ -22,7 +22,7 @@
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '1.12.0snc1';
+our $VERSION = '1.12.0snc2';
 
 # Find the home directory; it's different on different OSes.
 our $homepath = $ENV{HOME} || $ENV{HOMEPATH} || $ENV{USERPROFILE} || '.';
@@ -1674,6 +1674,7 @@ my %columns = (
    index                       => { hdr => 'Index',               num => 0, label => 'The index involved', agghide => 1 },
    index_ref                   => { hdr => 'Index Ref',           num => 0, label => 'Index referenced' },
    info                        => { hdr => 'Query',               num => 0, label => 'Info or the current query', },
+   info_src                    => { hdr => 'Query-Source',        num => 0, label => 'Source table of info or current query' },
    insert_intention            => { hdr => 'Ins Intent',          num => 1, label => 'Whether the thread was trying to insert' },
    inserts                     => { hdr => 'Inserts',             num => 1, label => 'Inserts' },
    io_bytes_s                  => { hdr => 'Bytes/Sec',           num => 1, label => 'Average I/O bytes/sec' },
@@ -2783,11 +2784,12 @@ my %tbl_meta = (
          cmd             => { src => 'command',    minw => 5,  maxw => 0 },
          time            => { src => 'time',       minw => 5,  maxw => 0, trans => [ qw(secs_to_time) ], agg => 'sum' },
          state           => { src => 'state',      minw => 0,  maxw => 0 },
+         info_src        => { src => 'info_src',   minw => 0,  maxw => 0 },
          info            => { src => 'info',       minw => 0,  maxw => 0, trans => [ qw(no_ctrl_char) ] },
          cnt             => { src => 'id',         minw => 0,  maxw => 0 },
          thread_name     => { src => 'name',       minw => 0,  maxw => 0 },
       },
-      visible => [ qw(cxn cmd cnt mysql_thread_id state user hostname db time info)],
+      visible => [ qw(cxn cmd cnt mysql_thread_id state user hostname db time info_src info)],
       filters => [ qw(hide_self hide_inactive hide_slave_io hide_event hide_connect hide_compress_gtid) ],
       sort_cols => '-time cxn hostname mysql_thread_id',
       sort_dir => '1',
@@ -4734,6 +4736,7 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
+                     if(PROCESSLIST_INFO IS NOT NULL, 'sql_text', 'processlist_info') Info_src,
                      if(PROCESSLIST_INFO IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
                      NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
@@ -4745,7 +4748,7 @@ my %stmt_maker_for = (
          eval {  # This can fail if the table doesn't exist, INFORMATION_SCHEMA doesn't exist, etc.
             my $cols = $dbh->selectall_arrayref(q{SHOW /*innotop*/ COLUMNS FROM INFORMATION_SCHEMA.PROCESSLIST LIKE 'TIME_MS'});
             if ( @$cols ) { # The TIME_MS colum exists
-               $sth = $dbh->prepare(q{SELECT /*innotop*/ ID, USER, HOST, DB, COMMAND, CASE WHEN TIME_MS/1000 > 365*86400 THEN TIME ELSE TIME_MS/1000 END AS TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST});
+               $sth = $dbh->prepare(q{SELECT /*innotop*/ ID, USER, HOST, DB, COMMAND, CASE WHEN TIME_MS/1000 > 365*86400 THEN TIME ELSE TIME_MS/1000 END AS TIME, STATE, 'info' INFO_SRC, INFO FROM INFORMATION_SCHEMA.PROCESSLIST});
             }
          };
          $sth ||= $dbh->prepare('SHOW /*innotop*/ FULL PROCESSLIST');
@@ -4774,6 +4777,7 @@ my %stmt_maker_for = (
                      END Command,
                      PROCESSLIST_TIME Time,
                      PROCESSLIST_STATE State,
+                     if(PROCESSLIST_INFO IS NOT NULL, 'sql_text', 'processlist_info') Info_src,
                      if(PROCESSLIST_INFO IS NOT NULL, SQL_TEXT, PROCESSLIST_INFO) Info,
                      NAME
                   FROM performance_schema.threads LEFT JOIN performance_schema.events_statements_current
